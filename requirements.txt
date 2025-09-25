@@ -1,0 +1,6 @@
+python-docx
+langchain
+langchain-community
+weaviate-client
+sentence-transformers
+FlagEmbedding
