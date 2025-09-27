@@ -18,4 +18,7 @@ if __name__ == '__main__':
         json=payload
     )
 
-    print(response.json())
+    embed_vectors = response.json()[0]
+    print(embed_vectors)
+    print(len(embed_vectors))
+    print(type(embed_vectors))

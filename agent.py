@@ -36,6 +36,7 @@ async def main():
 
     model_name = os.getenv("MODEL_NAME")
     api_key = os.getenv("OPENAI_API_KEY")
+
     print(f"{model_name}\n{api_key}")
     # Create the client to interact with the MCP servers
     mcp_client = StdioClient(model_name, api_key)

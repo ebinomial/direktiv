@@ -19,13 +19,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+import requests
 import logging
 import weaviate
 
 from typing import List, Dict, Any
 
-from numpy import ndarray
-from FlagEmbedding import BGEM3FlagModel
 from langchain_core.documents import Document
 from weaviate.classes.config import Property, DataType
 from weaviate.classes.query import MetadataQuery, Filter
@@ -36,7 +35,7 @@ logger = logging.getLogger()
 
 class DatabaseManager:
 
-    def __init__(self, local_model: bool = True) -> None:
+    def __init__(self, embedding_host: str) -> None:
         self.collection_name = "Direktiv"
 
         self.client = weaviate.connect_to_local()
@@ -44,9 +43,12 @@ class DatabaseManager:
 
         logger.info(f"Database connection established: {self.collection_name}")
         
-        self.model = BGEM3FlagModel("BAAI/BGE-m3", use_fp16=True, devices="cuda")
+        self.embedding_url = f"http://{embedding_host}/embed"
         
-        logger.info(f"Sentence Embedding model is available for use.")
+        test_response = self.encode(["test"])
+        if test_response[0]:
+            logger.info(f"Sentence Embedding model is available for use.")
+            logger.info(f"Embed dimensions: {len(test_response[0])}")
 
         if not self.collection.exists():
             logger.info(f"Collection doesn't exist. Creating a new one...")
@@ -58,9 +60,17 @@ class DatabaseManager:
                 ]
             )
 
-    def encode(self, sentences: List[str]) -> List[ndarray]:
-        vectors = self.model.encode(sentences)["dense_vecs"]
-        return vectors
+    def encode(self, sentences: List[str]) -> List[List[int]]:
+        headers = {"Content-Type": "application/json"}
+        payload = {"inputs": sentences}
+
+        response = requests.post(
+            self.embedding_url,
+            headers=headers,
+            json=payload
+        )
+
+        return response.json()
 
     def insert(self, chunks: List[Document]) -> List[str]:
 
@@ -75,7 +85,7 @@ class DatabaseManager:
                 for i, chunk in enumerate(chunks):
                     uuid = batch.add_object(
                         properties={ "title": chunk.metadata["source"], "body": chunk.page_content },
-                        vector=vectors[i].tolist()
+                        vector=vectors[i]
                     )
                     uuids.append(str(uuid))
                     if batch.number_errors > 10:
@@ -98,7 +108,7 @@ class DatabaseManager:
         query_vector = self.encode([query])[0]
         
         response = self.collection.query.near_vector(
-            near_vector=query_vector.tolist(),
+            near_vector=query_vector,
             limit=limit,
             return_metadata=MetadataQuery(distance=True)
         )

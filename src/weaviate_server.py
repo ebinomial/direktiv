@@ -20,13 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
 import logging
 
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 from database_management import DatabaseManager
 
+load_dotenv()
+
+embedding_host = os.getenv("EMBEDDING_SERVER")
+
 weaviate_mcp = FastMCP("weaviate_dbms")
-dbms = DatabaseManager(local_model=True)
+dbms = DatabaseManager(embedding_host)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -69,3 +75,4 @@ async def count_collection_vectors() -> int:
 
 if __name__ == '__main__':
     weaviate_mcp.run(transport="stdio")
+    dbms.client.close()
