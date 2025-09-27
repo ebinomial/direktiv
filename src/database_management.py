@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
+import logging
 import weaviate
 
 from typing import List, Dict, Any
@@ -28,20 +28,28 @@ from numpy import ndarray
 from FlagEmbedding import BGEM3FlagModel
 from langchain_core.documents import Document
 from weaviate.classes.config import Property, DataType
-from weaviate.classes.query import MetadataQuery
+from weaviate.classes.query import MetadataQuery, Filter
+from weaviate.exceptions import WeaviateQueryError
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
 class DatabaseManager:
 
-    def __init__(self, local_model: bool = True):
+    def __init__(self, local_model: bool = True) -> None:
         self.collection_name = "Direktiv"
 
         self.client = weaviate.connect_to_local()
         self.collection = self.client.collections.get(self.collection_name)
 
+        logger.info(f"Database connection established: {self.collection_name}")
+        
         self.model = BGEM3FlagModel("BAAI/BGE-m3", use_fp16=True, devices="cuda")
+        
+        logger.info(f"Sentence Embedding model is available for use.")
 
         if not self.collection.exists():
-            print(f"Collection doesn't exist. Creating a new one...")
+            logger.info(f"Collection doesn't exist. Creating a new one...")
             self.collection = self.client.collections.create(
                 name=self.collection_name,
                 properties=[
@@ -60,22 +68,28 @@ class DatabaseManager:
         vectors = self.encode(sentences)
 
         uuids = []
+        print(f"Chunks received for insertion={len(chunks)}")
 
-        with self.collection.batch.fixed_size(batch_size=50) as batch:
-            for i, chunk in enumerate(chunks):
-                uuid = batch.add_object(
-                    properties={ "title": chunk.metadata["source"], "body": chunk.page_content },
-                    vector=vectors[i].tolist()
-                )
-                uuids.append(str(uuid))
-                if batch.number_errors > 10:
-                    print("Batch import stopped due to excessive errors.")
-                    break
+        try:
+            with self.collection.batch.fixed_size(batch_size=50) as batch:
+                for i, chunk in enumerate(chunks):
+                    uuid = batch.add_object(
+                        properties={ "title": chunk.metadata["source"], "body": chunk.page_content },
+                        vector=vectors[i].tolist()
+                    )
+                    uuids.append(str(uuid))
+                    if batch.number_errors > 10:
+                        print("Batch import stopped due to excessive errors.")
+                        break
 
-        failed_objects = self.collection.batch.failed_objects
-        if failed_objects:
-            print(f"Number of failed imports: {len(failed_objects)}")
-            print(f"First failed object: {failed_objects[0]}")
+            failed_objects = self.collection.batch.failed_objects
+            if failed_objects:
+                print(f"Number of failed imports: {len(failed_objects)}")
+                print(f"First failed object: {failed_objects[0]}")
+
+        except Exception as err:
+            print(f"Exception occured in insertion:\n{str(err)}")
+            return []
 
         return uuids
     
@@ -99,8 +113,25 @@ class DatabaseManager:
             })
 
         return objects
-
-
-if __name__ == '__main__':
-    manager = DatabaseManager()
-    manager.client.close()
+    
+    def delete(self, title: str = None) -> Dict[str, int]:
+        try:
+            deleted = self.collection.data.delete_many(
+                where=Filter.by_property("title").like(title)
+            )
+            return {
+                "failed": deleted.failed,
+                "successful": deleted.successful,
+                "matched": deleted.matches
+            }
+        
+        except Exception as err:
+            print(f"There appeared error deleting objects: {str(err)}")
+            return { }
+        
+    def count(self) -> int:
+        try:
+            count = self.collection.aggregate.over_all(total_count=True)
+            return count.total_count
+        except WeaviateQueryError as e:
+            print(f"Counting error: {str(e)}")

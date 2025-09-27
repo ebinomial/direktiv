@@ -1,4 +1,4 @@
-from utils.database_management import DatabaseManager
+from database_management import DatabaseManager
 from utils.document_management import DocumentManager
 
 if __name__ == '__main__':
