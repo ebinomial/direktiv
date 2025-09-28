@@ -67,7 +67,7 @@ pip install -r requirements.txt
 
 ### 3. Start Required Services
 
-#### Start Weaviate Database Server somewhere
+#### 3.1. Start Weaviate Database Server somewhere
 
 ```docker
 services:
@@ -99,6 +99,36 @@ volumes:
 ```bash
 docker-compose up -d
 ```
+
+#### 3.2. Install Google Search MCP server
+
+* Clone the repository and follow the instructions as specified inside https://github.com/mixelpixx/Google-Search-MCP-Server.
+
+* Inside `agent.py`, set the `google_search` MCP server path to where you have installed the search MCP server.
+
+```python
+server_configs = {
+        "weaviate_vector_database": {
+            "command": "python",
+            "transport": "stdio",
+            "args": [
+                "src/weaviate_server.py"
+            ]
+        },
+        "google_search": {
+           "command": "node",
+            "transport": "stdio",
+            "args": [
+                "/path/to/Google-Search-MCP-Server/dist/google-search.js"
+            ],
+            "env": {
+                "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+                "GOOGLE_SEARCH_ENGINE_ID": os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+            }
+        } 
+    }
+```
+
 
 #### Start BGE-m3 Embedding Server (local or remote)
 ```bash
