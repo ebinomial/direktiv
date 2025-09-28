@@ -19,6 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
 import requests
 import logging
 import weaviate
@@ -74,11 +75,16 @@ class DatabaseManager:
 
     def insert(self, chunks: List[Document]) -> List[str]:
 
-        sentences = [chunk.page_content for chunk in chunks]
-        vectors = self.encode(sentences)
+        print(f"Chunks received for insertion={len(chunks)}")
+
+        vectors = []
+        for chunk in chunks:
+            vector_chunk = self.encode([chunk.page_content])[0]
+            vectors.append(vector_chunk)
+
+        print(f"LEN VECTORS RETURNED: {len(vectors)}")
 
         uuids = []
-        print(f"Chunks received for insertion={len(chunks)}")
 
         try:
             with self.collection.batch.fixed_size(batch_size=50) as batch:

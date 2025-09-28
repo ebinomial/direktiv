@@ -21,7 +21,8 @@
 # SOFTWARE.
 
 import re
-from typing import List
+import docx
+from typing import List, Dict, Any
 
 from langchain_core.documents import Document
 from langchain_community.document_loaders import Docx2txtLoader
@@ -29,6 +30,61 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 class DocumentManager:
 
+    @classmethod
+    def segment_document(cls, filepath: str) -> List[Dict[str, Any]]:
+        
+        chunks = []
+
+        document = docx.Document(filepath)
+
+        full_text = []
+        for paragraph in document.paragraphs:
+            full_text.append(paragraph.text)
+
+        full_text = '\n'.join(full_text)
+        
+        chapter_split_pattern = r"[А-ЯЁӨҮ]{2,}ДҮГЭЭР БҮЛЭГ\n|[А-ЯЁӨҮ]{2,}ДУГААР БҮЛЭГ\n"
+        article_split_pattern = r"\d{1,} дугаар зүйл\.|\d{1,} дүгээр зүйл\."
+
+        chapters = re.split(chapter_split_pattern, full_text)
+
+        for i, _ in enumerate(chapters):
+            if i > 0:
+                chapter_name = chapters[i].split("\n")[0]
+                articles = re.split(article_split_pattern, chapters[i])
+                for j, _ in enumerate(articles):
+                    if j > 0:
+                        article_name = articles[j].split("\n")[0]
+                        chunks.append({
+                            "chapter_name": f"{i}-Р БҮЛЭГ: {chapter_name}",
+                            "article_name": f"{article_name}",
+                            "article_body": articles[j].replace("\n\n", "\n")
+                        })
+
+        return chunks
+        
+    @classmethod
+    def chunk_articles(cls, articles: List[Dict[str, Any]], chunk_size: int) -> List[Dict[str, Any]]:
+        chunks = []
+        for article in articles:
+            start_idx = 0
+            while len(article["article_body"][start_idx:]) > chunk_size:
+                chunk = article["article_body"][start_idx:start_idx+chunk_size]
+                chunks.append({
+                    "chapter": article["chapter_name"],
+                    "article": article["article_name"],
+                    "chunk_body": f"({article['chapter_name']}/{article['article_name']})\n{chunk}"
+                })
+                start_idx = start_idx + chunk_size
+            chunk = article["article_body"][start_idx:]
+            chunks.append({
+                "chapter": article["chapter_name"],
+                "article": article["article_name"],
+                "chunk_body": f"({article['chapter_name']}/{article['article_name']})\n{chunk}"
+            })
+
+        return chunks
+    
     @classmethod
     def split_text_into_chunks(cls, filepath: str, is_legal_document: bool = True) -> List[Document]:
         """
@@ -70,8 +126,8 @@ class DocumentManager:
         
         text_splitter = RecursiveCharacterTextSplitter(
             separators=separators,
-            chunk_size=1200,
-            chunk_overlap=250,
+            chunk_size=1000,
+            chunk_overlap=350,
             length_function=len,
             is_separator_regex=True
         )

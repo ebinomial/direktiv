@@ -1,13 +1,17 @@
-from database_management import DatabaseManager
+from src.database_management import DatabaseManager
 from utils.document_management import DocumentManager
 
 count = True
 read = False
 delete = False
 
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 if __name__ == '__main__':
 
-    dbms = DatabaseManager()
+    dbms = DatabaseManager(os.getenv("EMBEDDING_SERVER"))
 
     if count:
         cnt = dbms.count()

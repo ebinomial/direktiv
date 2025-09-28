@@ -37,8 +37,6 @@ async def main():
     model_name = os.getenv("MODEL_NAME")
     api_key = os.getenv("OPENAI_API_KEY")
 
-    print(f"{model_name}\n{api_key}")
-    # Create the client to interact with the MCP servers
     mcp_client = StdioClient(model_name, api_key)
 
     # Configure the server parameters
@@ -49,7 +47,18 @@ async def main():
             "args": [
                 "src/weaviate_server.py"
             ]
-        }
+        },
+        "google_search": {
+           "command": "node",
+            "transport": "stdio",
+            "args": [
+                "/home/verdine/Projects/Google-Search-MCP-Server/dist/google-search.js"
+            ],
+            "env": {
+                "GOOGLE_API_KEY": os.getenv("GOOGLE_API_KEY"),
+                "GOOGLE_SEARCH_ENGINE_ID": os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+            }
+        } 
     }
 
     try:

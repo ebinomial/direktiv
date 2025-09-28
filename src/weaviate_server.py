@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 @weaviate_mcp.tool()
-async def search_vector_database(query: str, limit: int = 2) -> str:
+async def search_vector_database(query: str, limit: int = 5) -> str:
     """
     Searches the Weaviate vector database collection pertaining 
     to the application for response document chunks by passing the 
