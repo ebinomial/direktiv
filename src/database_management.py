@@ -50,9 +50,13 @@ class DatabaseManager:
         if test_response[0]:
             logger.info(f"Sentence Embedding model is available for use.")
             logger.info(f"Embed dimensions: {len(test_response[0])}")
+        else:
+            logger.info(f"EMBEDDING SERVER IS NOT CONNECTED! FIX IT BEFORE FURTHER USE.")
+            import sys
+            sys.exit()
 
         if not self.collection.exists():
-            logger.info(f"Collection doesn't exist. Creating a new one...")
+            logger.info(f"COLLECTION {self.collection_name} DOESN'T EXIST. CREATING A NEW ONE...")
             self.collection = self.client.collections.create(
                 name=self.collection_name,
                 properties=[
@@ -66,6 +70,7 @@ class DatabaseManager:
 
     def encode(self, sentences: List[str]) -> List[List[int]]:
         headers = {"Content-Type": "application/json"}
+        
         payload = {"inputs": sentences}
 
         response = requests.post(

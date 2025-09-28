@@ -1,6 +1,6 @@
 # Mongolian Legal AI Agent
 
-A ReAct agent powered by OpenAI that provides specialized assistance with legal questions, particularly focusing on [**Mongolian Private Data Protection Law**](legalinfo.mn/mn/detail?lawId=16390288615991). The agent uses vector search and web search capabilities to deliver accurate, contextual legal guidance.
+A ReAct agent powered by OpenAI that provides specialized assistance with legal questions, particularly focusing on **Mongolian Private Data Protection Law** (https://legalinfo.mn/mn/detail?lawId=16390288615991). The agent uses vector search and web search capabilities to deliver accurate, contextual legal guidance.
 
 ## Overview
 
@@ -107,10 +107,18 @@ volume=$PWD/data
 docker run --gpus all -p 8080:80 -v $volume:/data --pull always ghcr.io/huggingface/text-embeddings-inference:latest --model-id $model
 ```
 
-### 4. Run the Agent
+### 4. Insert the document into the vector database 
+```bash
+python src/insert_documents.py
+```
+This will create the collection (in other words, a table) in your database if it doesn't exist according to the schema for the legal documents.
+
+### 5. Run the Agent
 ```bash
 python agent.py
 ```
+
+This will create an indefinite cycle where your queries are processed through a series of agentic tool calls and reasoning steps.
 
 ## Dependencies
 

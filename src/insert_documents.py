@@ -15,6 +15,6 @@ if __name__ == '__main__':
     dbms = DatabaseManager(os.getenv("EMBEDDING_SERVER"))
 
     ids = dbms.insert(chunks)
-    print(ids)
+    print(f"Inserted documents: {ids}")
 
     dbms.client.close()
