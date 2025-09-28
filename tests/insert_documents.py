@@ -9,7 +9,9 @@ if __name__ == '__main__':
 
     filepath = "docs/ХҮНИЙ ХУВИЙН МЭДЭЭЛЭЛ ХАМГААЛАХ ТУХАЙ.docx"
 
-    chunks = DocumentManager.split_text_into_chunks(filepath)
+    articles = DocumentManager.segment_document(filepath)
+    chunks = DocumentManager.chunk_articles(articles, 800)
+    
     dbms = DatabaseManager(os.getenv("EMBEDDING_SERVER"))
 
     ids = dbms.insert(chunks)

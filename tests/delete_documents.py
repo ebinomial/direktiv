@@ -9,10 +9,15 @@
 #         print(chunk.metadata["source"])
 
 
-from utils.document_management import DocumentManager
+from src.database_management import DatabaseManager
 
-articles = DocumentManager.segment_document("docs/ХҮНИЙ ХУВИЙН МЭДЭЭЛЭЛ ХАМГААЛАХ ТУХАЙ.docx")
-chunks = DocumentManager.chunk_articles(articles, 800)
+import os
+import requests
+from dotenv import load_dotenv
 
-for chunk in chunks:
-    print(f"{chunk}\n")
+_ = load_dotenv()
+
+dbms = DatabaseManager(os.getenv("EMBEDDING_SERVER"))
+result = dbms.delete("docs/ХҮНИЙ ХУВИЙН МЭДЭЭЛЭЛ ХАМГААЛАХ ТУХАЙ.docx")
+print(result)
+dbms.client.close()

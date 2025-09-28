@@ -37,7 +37,7 @@ logger = logging.getLogger()
 class DatabaseManager:
 
     def __init__(self, embedding_host: str) -> None:
-        self.collection_name = "Direktiv"
+        self.collection_name = "LawDocuments"
 
         self.client = weaviate.connect_to_local()
         self.collection = self.client.collections.get(self.collection_name)
@@ -56,8 +56,11 @@ class DatabaseManager:
             self.collection = self.client.collections.create(
                 name=self.collection_name,
                 properties=[
-                    Property(name="title", data_type=DataType.TEXT),
-                    Property(name="body", data_type=DataType.TEXT)
+                    Property(name="order_id", data_type=DataType.INT),
+                    Property(name="document", data_type=DataType.TEXT),
+                    Property(name="chapter", data_type=DataType.TEXT),
+                    Property(name="article", data_type=DataType.TEXT),
+                    Property(name="chunk_body", data_type=DataType.TEXT)
                 ]
             )
 
@@ -73,14 +76,14 @@ class DatabaseManager:
 
         return response.json()
 
-    def insert(self, chunks: List[Document]) -> List[str]:
+    def insert(self, chunks: List[Dict[str, str]]) -> List[str]:
 
         print(f"Chunks received for insertion={len(chunks)}")
 
         vectors = []
         for chunk in chunks:
-            vector_chunk = self.encode([chunk.page_content])[0]
-            vectors.append(vector_chunk)
+            text_vector = self.encode([chunk["chunk_body"]])[0]
+            vectors.append(text_vector)
 
         print(f"LEN VECTORS RETURNED: {len(vectors)}")
 
@@ -90,7 +93,13 @@ class DatabaseManager:
             with self.collection.batch.fixed_size(batch_size=50) as batch:
                 for i, chunk in enumerate(chunks):
                     uuid = batch.add_object(
-                        properties={ "title": chunk.metadata["source"], "body": chunk.page_content },
+                        properties={
+                            "order_id": chunk["order_id"],
+                            "document": chunk["document"],
+                            "chapter": chunk["chapter"],
+                            "article": chunk["article"],
+                            "chunk_body": chunk["chunk_body"]
+                        },
                         vector=vectors[i]
                     )
                     uuids.append(str(uuid))
@@ -109,7 +118,7 @@ class DatabaseManager:
 
         return uuids
     
-    def read(self, query: str, limit: int = 2) -> List[Dict[str, Any]]:
+    def read(self, query: str, limit: int = 2) -> List[str]:
         
         query_vector = self.encode([query])[0]
         
@@ -119,21 +128,37 @@ class DatabaseManager:
             return_metadata=MetadataQuery(distance=True)
         )
 
-        objects = []
+        response_objects = []
 
         for obj in response.objects:
-            objects.append({
-                "distance": obj.metadata.distance,
-                "title": obj.properties["title"],
-                "body": obj.properties["body"]
-            })
+            
+            context_response = self.collection.query.fetch_objects(
+                filters=(
+                    Filter.by_property("document").equal(obj.properties["document"]) &
+                    Filter.by_property("chapter").equal(obj.properties["chapter"]) &
+                    Filter.by_property("article").equal(obj.properties["article"])
+                ),
+                limit=4
+            )
 
-        return objects
+            objects = []
+            for context_obj in context_response.objects:
+                objects.append(context_obj.properties)
+
+            response_objects.append(objects)
+
+        final_response = []
+        for unordered_chunks in response_objects:
+            ordered_chunks = sorted(unordered_chunks, key=lambda x: x['order_id'])
+            res = "\n".join([chunk['chunk_body'] for chunk in ordered_chunks])
+            final_response.append(res)
+
+        return final_response
     
     def delete(self, title: str = None) -> Dict[str, int]:
         try:
             deleted = self.collection.data.delete_many(
-                where=Filter.by_property("title").like(title)
+                where=Filter.by_property("document").like(title)
             )
             return {
                 "failed": deleted.failed,

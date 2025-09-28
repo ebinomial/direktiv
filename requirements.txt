@@ -2,10 +2,8 @@ python-docx
 langchain
 langchain-community
 weaviate-client
-sentence-transformers
 mcp[cli]
 langchain-mcp-adapters
 openai
 dotenv
 jinja2
-slack-sdk

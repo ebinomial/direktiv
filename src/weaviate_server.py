@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
 @weaviate_mcp.tool()
-async def search_vector_database(query: str, limit: int = 5) -> str:
+async def search_vector_database(query: str, limit: int = 2) -> str:
     """
     Searches the Weaviate vector database collection pertaining 
     to the application for response document chunks by passing the 
@@ -52,13 +52,7 @@ async def search_vector_database(query: str, limit: int = 5) -> str:
     db_response = dbms.read(query, limit)
 
     if len(db_response) > 0:
-        str_repr = ""
-        for entity in db_response:
-            str_repr += f"""
-            Title: {entity['title']}\n
-            Response chunk: {entity['body']}\n
-            Relevance score: {(1-entity['distance'])*100}%\n\n
-            """
+        str_repr = "\n".join(db_response)
             
         return str_repr
 

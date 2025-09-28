@@ -56,6 +56,7 @@ class DocumentManager:
                     if j > 0:
                         article_name = articles[j].split("\n")[0]
                         chunks.append({
+                            "document_name": filepath,
                             "chapter_name": f"{i}-Р БҮЛЭГ: {chapter_name}",
                             "article_name": f"{article_name}",
                             "article_body": articles[j].replace("\n\n", "\n")
@@ -68,19 +69,26 @@ class DocumentManager:
         chunks = []
         for article in articles:
             start_idx = 0
+            idx = 1
             while len(article["article_body"][start_idx:]) > chunk_size:
                 chunk = article["article_body"][start_idx:start_idx+chunk_size]
                 chunks.append({
+                    "order_id": idx,
+                    "document": article["document_name"],
                     "chapter": article["chapter_name"],
                     "article": article["article_name"],
-                    "chunk_body": f"({article['chapter_name']}/{article['article_name']})\n{chunk}"
+                    "chunk_body": f"ХАРГАЛЗАХ ХУУЛЬ: ({article['document_name']}/БҮЛГИЙН НЭР: {article['chapter_name']}/ЗҮЙЛИЙН НЭР:{article['article_name']})\n{chunk}"
                 })
                 start_idx = start_idx + chunk_size
+                idx += 1
+
             chunk = article["article_body"][start_idx:]
             chunks.append({
+                "order_id": idx,
+                "document": article["document_name"],
                 "chapter": article["chapter_name"],
                 "article": article["article_name"],
-                "chunk_body": f"({article['chapter_name']}/{article['article_name']})\n{chunk}"
+                "chunk_body": f"({article['document_name']}/{article['chapter_name']}/{article['article_name']})\n{chunk}"
             })
 
         return chunks
