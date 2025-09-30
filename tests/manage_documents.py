@@ -11,7 +11,7 @@ if __name__ == '__main__':
     dbms = DatabaseManager(os.getenv("EMBEDDING_SERVER"))
 
     user_query = """
-    Төрийн юм уу орон нутгийн хөрөнгөөр худалдаа хийж байгаа хүний хувийн мэдээллийг зөвшөөрөлгүй авч болох уу?
+    Хувийн мэдээллийн зөрчил гарсан гомдлыг хаана гаргах талаар
     """
     response = dbms.read(user_query)
     print(response)
